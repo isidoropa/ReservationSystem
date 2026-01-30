@@ -3,130 +3,178 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Prenota Tavolo</title>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+    <title>Prenotazioni - Angolo Divino</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
     <style>
-        :root { --bg: #121212; --card: #1e1e1e; --gold: #d4af37; --text: #ecf0f1; --disabled: #333; }
+        :root {
+            --bg-body: #0a0a0a; /* Sfondo pagina scurissimo */
+            --bg-widget: #141414; /* Sfondo widget leggermente più chiaro */
+            --text-primary: #ffffff;
+            --text-secondary: #888888;
+            --accent: #d4af37; /* Oro elegante */
+            --accent-hover: #b5952f;
+            --border: #2a2a2a;
+            --error: #e74c3c;
+        }
+
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         
-        body { font-family: 'Lato', sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 20px; padding-bottom: 100px; }
-
-        h1 { font-family: 'Playfair Display', serif; text-align: center; color: var(--gold); margin: 10px 0 5px 0; }
-        .subtitle { text-align: center; font-size: 0.9em; color: #888; margin-bottom: 30px; letter-spacing: 2px; text-transform: uppercase; }
-
-        /* LOADING SPINNER */
-        #loader-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: var(--bg); z-index: 9999; display: flex;
-            justify-content: center; align-items: center; flex-direction: column;
-            transition: opacity 0.5s;
+        body { 
+            font-family: 'DM Sans', sans-serif; 
+            background-color: var(--bg-body); 
+            color: var(--text-primary); 
+            margin: 0; padding: 20px; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            min-height: 100vh;
         }
-        .spinner { border: 4px solid #333; border-top: 4px solid var(--gold); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 15px; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        .step-card {
-            background: var(--card); border-radius: 16px; padding: 20px;
-            margin-bottom: 20px; border: 1px solid #333;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+        /* WIDGET CONTAINER */
+        .widget-container {
+            width: 100%; max-width: 450px;
+            background: var(--bg-widget);
+            border-radius: 24px;
+            border: 1px solid var(--border);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            overflow: hidden;
+            position: relative;
         }
-        .step-title { font-size: 1.1em; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; color: var(--gold); font-family: 'Playfair Display', serif; }
-        .step-num { background: var(--gold); color: var(--bg); width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.8em; }
 
-        /* CONTROLS */
-        .guests-wrapper { display: flex; justify-content: space-between; align-items: center; background: #252525; padding: 10px; border-radius: 12px; }
-        .btn-guest { width: 45px; height: 45px; border-radius: 50%; background: #333; color: white; border: none; font-size: 1.5em; cursor: pointer; }
-        .guest-count { font-size: 1.8em; font-weight: bold; }
+        /* HEADER */
+        .widget-header {
+            padding: 25px 25px 15px 25px;
+            text-align: center;
+            border-bottom: 1px solid var(--border);
+        }
+        .brand-name { font-size: 1.1em; letter-spacing: 2px; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 5px; font-weight: 500; }
+        .widget-title { font-size: 1.8em; font-weight: 700; margin: 0; color: var(--text-primary); }
 
+        /* TOP BAR (Guests & Date) */
+        .selection-bar {
+            display: flex; gap: 10px; padding: 20px;
+            background: #1a1a1a;
+        }
+        .selector-box {
+            flex: 1; background: var(--bg-widget); border: 1px solid var(--border);
+            border-radius: 12px; padding: 10px; cursor: pointer;
+            transition: 0.2s; position: relative;
+        }
+        .selector-box:hover { border-color: #444; }
+        .selector-label { font-size: 0.75em; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 4px; }
+        .selector-value { font-size: 1.1em; font-weight: 500; }
+        
+        /* HIDDEN INPUTS */
+        .hidden-input { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+
+        /* CONTENT AREA */
+        .step-content { padding: 25px; min-height: 250px; }
+        
+        .fade-in { animation: fadeIn 0.4s ease forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* TIME SLOTS GRID */
+        .slots-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .time-btn {
+            background: transparent; border: 1px solid var(--border);
+            color: var(--text-primary); padding: 12px; border-radius: 8px;
+            cursor: pointer; font-family: inherit; font-size: 1em; transition: 0.2s;
+        }
+        .time-btn:hover { border-color: var(--text-secondary); background: #1a1a1a; }
+        .time-btn.selected { background: var(--text-primary); color: var(--bg-body); border-color: var(--text-primary); font-weight: bold; }
+        .time-btn.disabled { opacity: 0.3; pointer-events: none; text-decoration: line-through; border-color: #222; }
+
+        /* FORM */
+        .form-group { margin-bottom: 15px; }
         input, textarea {
-            width: 100%; padding: 15px; background: #252525; border: 1px solid #444;
-            color: white; border-radius: 10px; font-size: 1.1em; outline: none; font-family: inherit;
-            color-scheme: dark;
+            width: 100%; background: #0a0a0a; border: 1px solid var(--border);
+            color: white; padding: 14px; border-radius: 10px; font-family: inherit; font-size: 1em; outline: none; transition: 0.2s;
         }
-        input:focus { border-color: var(--gold); }
+        input:focus, textarea:focus { border-color: var(--accent); }
+        input::placeholder, textarea::placeholder { color: #444; }
 
-        /* SLOTS GRID */
-        .slots-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; }
-        .time-slot {
-            padding: 12px 5px; background: #252525; border: 1px solid #444; border-radius: 8px;
-            text-align: center; cursor: pointer; transition: 0.2s;
+        /* FOOTER ACTION */
+        .widget-footer { padding: 20px; border-top: 1px solid var(--border); background: #1a1a1a; }
+        .btn-main {
+            width: 100%; background: var(--text-primary); color: var(--bg-body);
+            border: none; padding: 16px; border-radius: 12px;
+            font-size: 1.1em; font-weight: 700; cursor: pointer; transition: 0.2s;
         }
-        .time-slot strong { display: block; font-size: 1.1em; }
-        .time-slot span { font-size: 0.7em; color: #888; }
-        
-        .time-slot.selected { background: var(--gold); color: var(--bg); border-color: var(--gold); }
-        .time-slot.selected span { color: #333; font-weight: bold; }
-        
-        .time-slot.full { opacity: 0.3; pointer-events: none; text-decoration: line-through; border-color: #333; background: #1a1a1a; }
+        .btn-main:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(255,255,255,0.1); }
+        .btn-main:disabled { background: #333; color: #555; cursor: not-allowed; transform: none; box-shadow: none; }
 
-        /* BOTTOM BAR */
-        .bottom-bar {
-            position: fixed; bottom: 0; left: 0; right: 0;
-            background: rgba(30, 30, 30, 0.95); backdrop-filter: blur(10px);
-            padding: 20px; border-top: 1px solid #333; z-index: 100;
+        /* GUEST SELECTOR MODAL (Simple overlay inside selector) */
+        select.guest-select {
+            appearance: none; border: none; background: transparent; 
+            color: white; font-size: 1.1em; width: 100%; cursor: pointer;
         }
-        .btn-confirm {
-            width: 100%; background: var(--gold); color: var(--bg); border: none;
-            padding: 16px; border-radius: 12px; font-weight: bold; font-size: 1.1em;
-            cursor: pointer; text-transform: uppercase; letter-spacing: 1px;
-            transition: 0.3s;
-        }
-        .btn-confirm:disabled { background: #444; color: #888; cursor: not-allowed; }
 
-        .hidden { display: none; }
-        .error-msg { color: #e74c3c; font-size: 0.9em; margin-top: 10px; text-align: center; background: rgba(231, 76, 60, 0.1); padding: 10px; border-radius: 8px; display: none; }
+        .info-msg { text-align: center; color: var(--text-secondary); font-size: 0.9em; margin-top: 20px; }
+        .loader { text-align: center; color: var(--accent); font-size: 0.9em; padding: 20px; }
     </style>
 </head>
 <body>
 
-    <div id="loader-overlay">
-        <div class="spinner"></div>
-        <div style="color:var(--gold); font-size:0.9em; letter-spacing:2px;">CARICAMENTO SISTEMA...</div>
-    </div>
-
-    <h1>Angolo Divino</h1>
-    <div class="subtitle">Prenotazione Tavolo</div>
-
-    <div class="step-card">
-        <div class="step-title"><span class="step-num">1</span> Coperti</div>
-        <div class="guests-wrapper">
-            <button class="btn-guest" onclick="updateGuests(-1)">-</button>
-            <span class="guest-count" id="guest-display">2</span>
-            <button class="btn-guest" onclick="updateGuests(1)">+</button>
+    <div class="widget-container">
+        <div class="widget-header">
+            <div class="brand-name">PRENOTAZIONI</div>
+            <h1 class="widget-title">Angolo Divino</h1>
         </div>
-    </div>
 
-    <div class="step-card">
-        <div class="step-title"><span class="step-num">2</span> Data</div>
-        <input type="date" id="date-picker" onchange="checkDateAndLoad()">
-        <div id="date-error" class="error-msg"></div>
-    </div>
+        <div class="selection-bar">
+            <div class="selector-box">
+                <span class="selector-label">Ospiti</span>
+                <div class="selector-value">
+                    <span id="guest-display">2</span> Persone
+                </div>
+                <select id="guest-select" class="hidden-input" onchange="updateGuests(this.value)">
+                    <option value="1">1 Persona</option>
+                    <option value="2" selected>2 Persone</option>
+                    <option value="3">3 Persone</option>
+                    <option value="4">4 Persone</option>
+                    <option value="5">5 Persone</option>
+                    <option value="6">6 Persone</option>
+                    <option value="7">7 Persone</option>
+                    <option value="8">8 Persone</option>
+                </select>
+            </div>
 
-    <div class="step-card" id="time-step" style="opacity:0.5; pointer-events:none;">
-        <div class="step-title"><span class="step-num">3</span> Orario</div>
-        <div id="slots-container" class="slots-grid">
-            <div style="grid-column:span 3; text-align:center; color:#666; font-size:0.9em;">Seleziona prima una data</div>
+            <div class="selector-box">
+                <span class="selector-label">Data</span>
+                <div class="selector-value" id="date-display">Oggi</div>
+                <input type="date" id="date-input" class="hidden-input" onchange="updateDate(this.value)">
+            </div>
         </div>
-        <div id="slots-error" class="error-msg">Nessun tavolo disponibile.</div>
-    </div>
 
-    <div class="step-card hidden" id="contact-step">
-        <div class="step-title"><span class="step-num">4</span> Dati Contatto</div>
-        <label>Nome Prenotazione</label>
-        <input type="text" id="name" placeholder="Es. Mario Rossi" style="margin-bottom:15px;">
-        <label>Telefono</label>
-        <input type="tel" id="phone" placeholder="333 1234567">
-        <textarea id="notes" rows="2" placeholder="Note (Allergie, Seggiolone...)" style="margin-top:15px;"></textarea>
-    </div>
+        <div class="step-content" id="step-time">
+            <div id="loading-slots" class="loader">Caricamento disponibilità...</div>
+            <div id="slots-container" class="slots-grid fade-in"></div>
+            <div id="no-slots-msg" class="info-msg" style="display:none;"></div>
+        </div>
 
-    <div class="bottom-bar">
-        <button id="btn-submit" class="btn-confirm" onclick="sendBooking()" disabled>CONFERMA</button>
+        <div class="step-content fade-in" id="step-form" style="display:none;">
+            <div style="margin-bottom:20px; color:var(--accent); font-weight:500;">
+                ← <span style="cursor:pointer; text-decoration:underline;" onclick="backToTime()">Cambia ora</span>
+            </div>
+            <div class="form-group">
+                <input type="text" id="name" placeholder="Nome completo" oninput="checkForm()">
+            </div>
+            <div class="form-group">
+                <input type="tel" id="phone" placeholder="Numero di telefono" oninput="checkForm()">
+            </div>
+            <div class="form-group">
+                <textarea id="notes" rows="2" placeholder="Note speciali (opzionale)"></textarea>
+            </div>
+        </div>
+
+        <div class="widget-footer">
+            <button id="btn-action" class="btn-main" disabled onclick="submitBooking()">SELEZIONA ORARIO</button>
+        </div>
     </div>
 
 <script>
-    // --- INCOLLA QUI LA TUA CONFIGURAZIONE FIREBASE ---
+    // --- CONFIGURAZIONE FIREBASE (INCOLLA QUI LE TUE CHIAVI) ---
     const firebaseConfig = {
     apiKey: "AIzaSyCs-6L3xP7_jhhatlAsS_U02Ye-92_AEXk",
     authDomain: "reservationsystem-64c22.firebaseapp.com",
@@ -139,171 +187,181 @@
     if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // STATO
-    let guests = 2;
-    let selectedDate = null;
-    let selectedTime = null;
-    let config = { 
-        capacity: 50, 
-        slots: ["19:00", "20:00", "21:00"], 
-        closedDays: [] // 0=Dom, 1=Lun...
+    // STATE
+    let state = {
+        guests: 2,
+        date: new Date().toISOString().split('T')[0],
+        time: null,
+        dayConfig: null
     };
 
     // INIT
     window.onload = () => {
-        const today = new Date().toISOString().split('T')[0];
-        document.getElementById('date-picker').min = today;
-
-        // SCARICA CONFIGURAZIONE e FERMA CARICAMENTO
-        db.ref('settings').once('value')
-        .then(snap => {
-            if(snap.val()) config = snap.val();
-            hideLoader();
-        })
-        .catch(err => {
-            console.error(err);
-            hideLoader(); // Nascondi comunque in caso di errore per non bloccare
-        });
+        // Set min date
+        document.getElementById('date-input').min = state.date;
+        document.getElementById('date-input').value = state.date;
+        formatDateDisplay(state.date);
+        loadAvailability();
     };
 
-    function hideLoader() {
-        const loader = document.getElementById('loader-overlay');
-        loader.style.opacity = '0';
-        setTimeout(() => loader.style.display = 'none', 500);
+    function updateGuests(val) {
+        state.guests = parseInt(val);
+        document.getElementById('guest-display').innerText = state.guests;
+        loadAvailability(); // Reload slots based on new guest count
     }
 
-    function updateGuests(delta) {
-        guests += delta;
-        if(guests < 1) guests = 1;
-        if(guests > 20) guests = 20;
-        document.getElementById('guest-display').innerText = guests;
-        if(selectedDate) checkDateAndLoad(); // Ricarica disponibilità se cambia num persone
+    function updateDate(val) {
+        if(!val) return;
+        state.date = val;
+        formatDateDisplay(val);
+        backToTime(); // Reset view
+        loadAvailability();
     }
 
-    function checkDateAndLoad() {
-        const input = document.getElementById('date-picker');
-        const errBox = document.getElementById('date-error');
-        const timeStep = document.getElementById('time-step');
-        
-        selectedDate = input.value;
-        if(!selectedDate) return;
+    function formatDateDisplay(dateStr) {
+        const d = new Date(dateStr);
+        const options = { day: 'numeric', month: 'short' }; // es. 23 Ott
+        document.getElementById('date-display').innerText = d.toLocaleDateString('it-IT', options);
+    }
 
-        // 1. CONTROLLO GIORNO CHIUSURA
-        const dayOfWeek = new Date(selectedDate).getDay(); // 0=Dom, 1=Lun
-        // Assicuriamoci che closedDays esista e sia un array (anche se vuoto)
-        const closedList = config.closedDays || []; 
+    function backToTime() {
+        document.getElementById('step-form').style.display = 'none';
+        document.getElementById('step-time').style.display = 'block';
+        document.getElementById('btn-action').innerText = "SELEZIONA ORARIO";
+        document.getElementById('btn-action').disabled = true;
+        state.time = null;
+        // Rimuovi selezione visuale
+        document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('selected'));
+    }
+
+    // LOAD SLOTS (Hybrid Logic)
+    function loadAvailability() {
+        const container = document.getElementById('slots-container');
+        const loader = document.getElementById('loading-slots');
+        const msg = document.getElementById('no-slots-msg');
         
-        if(closedList.includes(dayOfWeek)) {
-            errBox.innerText = "Siamo chiusi in questo giorno. Scegli un'altra data.";
-            errBox.style.display = "block";
-            timeStep.style.opacity = "0.5";
-            timeStep.style.pointerEvents = "none";
-            document.getElementById('slots-container').innerHTML = "";
-            return;
-        } else {
-            errBox.style.display = "none";
+        container.innerHTML = "";
+        loader.style.display = "block";
+        msg.style.display = "none";
+
+        // 1. Get Day Config
+        db.ref('calendar/' + state.date).once('value').then(snap => {
+            const val = snap.val();
+            
+            // Default config if not set
+            state.dayConfig = val || { isOpen: true, start: "19:00", end: "23:00", capacity: 50 };
+
+            if (!state.dayConfig.isOpen) {
+                loader.style.display = "none";
+                msg.innerText = "Siamo chiusi in questa data.";
+                msg.style.display = "block";
+                return;
+            }
+
+            // 2. Get Bookings to calculate availability
+            db.ref('prenotazioni').orderByChild('date').equalTo(state.date).once('value', bookSnap => {
+                const bookings = bookSnap.val() || {};
+                
+                // Calcola occupazione totale del giorno (semplificato per turno unico/serata)
+                let totalOccupied = 0;
+                Object.values(bookings).forEach(b => totalOccupied += parseInt(b.guests));
+                const remaining = state.dayConfig.capacity - totalOccupied;
+
+                loader.style.display = "none";
+
+                if (remaining < state.guests) {
+                    msg.innerHTML = `<span style="color:var(--error)">Tutto esaurito</span><br>Rimasti solo ${remaining} posti.`;
+                    msg.style.display = "block";
+                    return;
+                }
+
+                // GENERATE SLOTS (Every 30 mins)
+                generateTimeSlots(state.dayConfig.start, state.dayConfig.end);
+            });
+        });
+    }
+
+    function generateTimeSlots(start, end) {
+        const container = document.getElementById('slots-container');
+        const startDate = new Date(`2000-01-01T${start}`);
+        const endDate = new Date(`2000-01-01T${end}`);
+        
+        let current = startDate;
+        let hasSlots = false;
+
+        while (current <= endDate) {
+            const h = current.getHours().toString().padStart(2, '0');
+            const m = current.getMinutes().toString().padStart(2, '0');
+            const timeStr = `${h}:${m}`;
+
+            const btn = document.createElement('button');
+            btn.className = 'time-btn';
+            btn.innerText = timeStr;
+            btn.onclick = () => selectTime(timeStr, btn);
+            
+            container.appendChild(btn);
+            hasSlots = true;
+            
+            // Increment 30 mins
+            current.setMinutes(current.getMinutes() + 30);
         }
 
-        // 2. CARICA DISPONIBILITÀ
-        timeStep.style.opacity = "1";
-        timeStep.style.pointerEvents = "auto";
-        document.getElementById('slots-container').innerHTML = "<div style='grid-column:span 3; text-align:center; color:#888;'>Controllo tavoli...</div>";
-
-        db.ref('prenotazioni').orderByChild('date').equalTo(selectedDate).once('value', snap => {
-            renderSlots(snap.val() || {});
-        });
+        if(!hasSlots) {
+            document.getElementById('no-slots-msg').innerText = "Nessun orario disponibile.";
+            document.getElementById('no-slots-msg').style.display = "block";
+        }
     }
 
-    function renderSlots(bookings) {
-        const container = document.getElementById('slots-container');
-        const errBox = document.getElementById('slots-error');
-        container.innerHTML = "";
+    function selectTime(time, btn) {
+        state.time = time;
+        document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
         
-        let availableCount = 0;
-        // Usa slot da config o fallback
-        const slotsToUse = (config.slots && config.slots.length > 0) ? config.slots : ["19:00", "20:00", "21:00"];
-
-        slotsToUse.forEach(time => {
-            // Conta occupati
-            let occupied = 0;
-            Object.values(bookings).forEach(b => {
-                if(b.time === time) occupied += parseInt(b.guests);
-            });
-
-            const remaining = config.capacity - occupied;
-            const isFull = remaining < guests;
-
-            const div = document.createElement('div');
-            div.className = `time-slot ${isFull ? 'full' : ''}`;
-            div.innerHTML = `<strong>${time}</strong><span>${isFull ? 'Pieno' : 'Libero'}</span>`;
-            
-            if(!isFull) {
-                div.onclick = () => selectTime(div, time);
-                availableCount++;
-            }
-            container.appendChild(div);
-        });
-
-        errBox.style.display = availableCount === 0 ? "block" : "none";
-        
-        // Reset selezione precedente se si cambia data
-        selectedTime = null;
-        document.getElementById('contact-step').classList.add('hidden');
-        checkForm();
+        // Go to Form
+        setTimeout(() => {
+            document.getElementById('step-time').style.display = 'none';
+            document.getElementById('step-form').style.display = 'block';
+            document.getElementById('btn-action').innerText = "CONFERMA PRENOTAZIONE";
+            checkForm(); // Re-check if data is there
+        }, 200);
     }
-
-    function selectTime(el, time) {
-        document.querySelectorAll('.time-slot').forEach(d => d.classList.remove('selected'));
-        el.classList.add('selected');
-        selectedTime = time;
-        document.getElementById('contact-step').classList.remove('hidden');
-        // Scroll morbido verso i contatti
-        document.getElementById('contact-step').scrollIntoView({behavior: "smooth"});
-        checkForm();
-    }
-
-    // VALIDAZIONE
-    ['name', 'phone'].forEach(id => {
-        document.getElementById(id).addEventListener('input', checkForm);
-    });
 
     function checkForm() {
         const name = document.getElementById('name').value.trim();
         const phone = document.getElementById('phone').value.trim();
-        const btn = document.getElementById('btn-submit');
+        const btn = document.getElementById('btn-action');
         
-        if(selectedTime && name.length > 2 && phone.length > 5) {
+        if(state.time && name.length > 2 && phone.length > 5) {
             btn.disabled = false;
-            btn.innerText = "CONFERMA PRENOTAZIONE";
         } else {
             btn.disabled = true;
         }
     }
 
-    function sendBooking() {
-        if(!confirm(`Confermi la prenotazione?\n\n📅 ${selectedDate}\n⏰ ${selectedTime}\n👥 ${guests} Persone`)) return;
+    function submitBooking() {
+        const btn = document.getElementById('btn-action');
+        btn.disabled = true;
+        btn.innerText = "REGISTRAZIONE...";
 
-        const btn = document.getElementById('btn-submit');
-        btn.disabled = true; btn.innerText = "INVIO...";
-
-        const booking = {
-            date: selectedDate,
-            time: selectedTime,
-            guests: guests,
+        const data = {
+            date: state.date,
+            time: state.time, // Saved as specific slot
+            guests: state.guests,
             name: document.getElementById('name').value.trim(),
             phone: document.getElementById('phone').value.trim(),
             notes: document.getElementById('notes').value.trim(),
             timestamp: Date.now()
         };
 
-        db.ref('prenotazioni').push(booking)
+        db.ref('prenotazioni').push(data)
         .then(() => {
-            alert("✅ PRENOTAZIONE RIUSCITA!\nTi aspettiamo.");
+            alert("✅ Prenotazione Confermata!\nTi aspettiamo alle " + state.time);
             location.reload();
         })
         .catch(e => {
             alert("Errore: " + e.message);
-            btn.disabled = false; btn.innerText = "CONFERMA";
+            btn.disabled = false;
+            btn.innerText = "CONFERMA PRENOTAZIONE";
         });
     }
 </script>
