@@ -4,129 +4,104 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin - Angolo Divino</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
     <style>
-        :root { --bg: #f4f6f8; --card: #fff; --text: #2d3436; --accent: #d4af37; --red: #e74c3c; }
-        body { font-family: 'Poppins', sans-serif; background: var(--bg); margin: 0; padding: 20px; color: var(--text); }
-        .container { max-width: 900px; margin: 0 auto; padding-bottom: 50px; }
+        :root { --bg: #f4f4f4; --card: #fff; --text: #111; --accent: #000; }
+        body { font-family: 'DM Sans', sans-serif; background: var(--bg); margin: 0; padding: 20px; color: var(--text); }
+        .container { max-width: 800px; margin: 0 auto; padding-bottom: 50px; }
 
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        h1 { margin: 0; font-size: 1.5em; }
-
-        .dashboard-card { background: var(--card); padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px; }
         
-        /* DATA NAV */
+        .card { background: var(--card); padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 20px; border: 1px solid #eee; }
+        
+        /* DATE NAV */
         .date-nav { display: flex; gap: 10px; margin-bottom: 20px; }
-        input[type="date"] { padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 1em; flex: 1; }
+        input[type="date"] { padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 1.1em; flex: 1; font-family: inherit; }
+        button { cursor: pointer; font-family: inherit; }
+
+        /* DAY CONFIG */
+        .config-row { display: flex; gap: 15px; align-items: center; justify-content: space-between; margin-bottom: 15px; }
+        .switch-btn { padding: 8px 16px; border-radius: 20px; border: 1px solid #ccc; background: #eee; font-weight: 500; }
+        .switch-btn.active { background: #000; color: #fff; border-color: #000; }
         
-        /* SLOT BAR */
-        .slot-group { margin-bottom: 15px; border-left: 4px solid var(--accent); padding-left: 15px; background: #fffdf0; padding: 10px; border-radius: 0 8px 8px 0; }
-        .slot-header { font-weight: bold; font-size: 1.1em; color: #333; display: flex; justify-content: space-between; }
-        
-        /* CARD PRENOTAZIONE */
-        .res-card { 
-            background: white; border: 1px solid #eee; padding: 12px; margin-top: 8px; 
-            border-radius: 8px; display: flex; justify-content: space-between; align-items: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+        input[type="time"], input[type="number"] { padding: 8px; border: 1px solid #ddd; border-radius: 6px; text-align: center; font-weight: bold; width: 100px; }
+
+        /* LIST */
+        .res-item { 
+            padding: 15px; border-bottom: 1px solid #eee; display: flex; align-items: center; justify-content: space-between;
         }
+        .res-time { font-weight: 700; width: 60px; }
         .res-info { flex: 1; }
-        .res-name { font-weight: 600; font-size: 1.05em; }
-        .res-badge { background: #2d3436; color: white; padding: 2px 8px; border-radius: 10px; font-size: 0.8em; margin-left: 5px; }
-        .res-actions button { background: #fee; color: var(--red); border: 1px solid #fadbd8; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .res-guests { background: #eee; padding: 2px 6px; border-radius: 4px; font-size: 0.85em; font-weight: bold; margin-left: 5px; }
+        .btn-del { color: red; border: none; background: none; font-size: 1.2em; cursor: pointer; }
 
-        /* SETTINGS BOX */
-        .settings-box { background: #2d3436; color: white; padding: 25px; border-radius: 12px; margin-top: 30px; }
-        .settings-box h3 { border-bottom: 1px solid #555; padding-bottom: 10px; margin-top: 0; }
-        
-        .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; margin-bottom: 5px; font-size: 0.9em; opacity: 0.8; }
-        .form-row { display: flex; gap: 10px; }
-        
-        input[type="number"], input[type="time"] { padding: 10px; border-radius: 6px; border: none; width: 100%; text-align: center; font-weight: bold; }
-        
-        /* DAY SELECTOR */
-        .day-selector { display: flex; gap: 5px; flex-wrap: wrap; }
-        .day-check { display: none; }
-        .day-label { 
-            background: #444; padding: 8px 12px; border-radius: 6px; cursor: pointer; user-select: none; font-size: 0.9em; flex: 1; text-align: center; border: 1px solid #555;
-        }
-        .day-check:checked + .day-label { background: var(--red); border-color: var(--red); font-weight: bold; } /* Rosso per i giorni CHIUSI */
+        .btn-save { width: 100%; background: #000; color: #fff; padding: 12px; border: none; border-radius: 8px; font-weight: bold; font-size: 1em; }
 
-        .btn-save { background: var(--accent); border: none; padding: 12px; width: 100%; border-radius: 8px; color: #000; font-weight: bold; cursor: pointer; font-size: 1em; margin-top: 20px; transition: 0.2s; }
-        .btn-save:hover { filter: brightness(1.1); }
-
-        #login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #2d3436; display: flex; justify-content: center; align-items: center; z-index: 999; }
-        .login-box { background: white; padding: 30px; border-radius: 10px; text-align: center; width: 90%; max-width: 350px; }
-        .login-box input { display: block; width: 100%; margin: 10px 0; padding: 12px; box-sizing: border-box; border: 1px solid #ddd; border-radius: 6px; }
+        /* LOGIN */
+        #login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #fff; z-index: 99; display: flex; align-items: center; justify-content: center; }
+        .login-box { width: 300px; text-align: center; }
+        .login-box input { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 8px; }
     </style>
 </head>
 <body>
 
 <div id="login-overlay">
     <div class="login-box">
-        <h2 style="color:#333;">Admin Login</h2>
+        <h2>Admin</h2>
         <input type="email" id="email" placeholder="Email">
         <input type="password" id="password" placeholder="Password">
-        <button onclick="login()" style="padding:12px 20px; background:#d4af37; border:none; font-weight:bold; cursor:pointer; width:100%; border-radius:6px; color:white;">ENTRA</button>
+        <button onclick="login()" class="btn-save">ENTRA</button>
     </div>
 </div>
 
 <div class="container" id="admin-content" style="display:none;">
     <div class="header">
-        <h1>📅 Agenda</h1>
-        <button onclick="logout()" style="background:none; border:1px solid #ccc; padding:5px 10px; border-radius:5px; cursor:pointer;">Esci</button>
+        <h2>Gestione Giorno</h2>
+        <button onclick="auth.signOut().then(()=>location.reload())" style="background:none; border:none; text-decoration:underline;">Esci</button>
     </div>
 
-    <div class="dashboard-card">
-        <div class="date-nav">
-            <button onclick="changeDate(-1)" style="padding:0 15px; cursor:pointer;">◀</button>
-            <input type="date" id="admin-date" onchange="loadReservations()">
-            <button onclick="changeDate(1)" style="padding:0 15px; cursor:pointer;">▶</button>
+    <div class="date-nav">
+        <button onclick="changeDate(-1)">◀</button>
+        <input type="date" id="admin-date" onchange="loadDay()">
+        <button onclick="changeDate(1)">▶</button>
+    </div>
+
+    <div class="card">
+        <div class="config-row">
+            <span>Stato:</span>
+            <div>
+                <button id="btn-open" class="switch-btn" onclick="setStatus(true)">APERTO</button>
+                <button id="btn-closed" class="switch-btn" onclick="setStatus(false)">CHIUSO</button>
+            </div>
         </div>
-        <div id="stats-bar" style="text-align:center; font-weight:bold; margin-bottom:15px; color:#555;">Caricamento...</div>
-        <div id="reservations-list"></div>
-    </div>
-
-    <div class="settings-box">
-        <h3>⚙️ Configurazione Locale</h3>
         
-        <div class="form-group">
-            <label>Capienza Massima (Coperti):</label>
-            <input type="number" id="set-capacity" value="50">
-        </div>
-
-        <div class="form-group">
-            <label>Giorni di CHIUSURA (Seleziona per chiudere):</label>
-            <div class="day-selector">
-                <input type="checkbox" id="d-1" class="day-check" value="1"><label for="d-1" class="day-label">Lun</label>
-                <input type="checkbox" id="d-2" class="day-check" value="2"><label for="d-2" class="day-label">Mar</label>
-                <input type="checkbox" id="d-3" class="day-check" value="3"><label for="d-3" class="day-label">Mer</label>
-                <input type="checkbox" id="d-4" class="day-check" value="4"><label for="d-4" class="day-label">Gio</label>
-                <input type="checkbox" id="d-5" class="day-check" value="5"><label for="d-5" class="day-label">Ven</label>
-                <input type="checkbox" id="d-6" class="day-check" value="6"><label for="d-6" class="day-label">Sab</label>
-                <input type="checkbox" id="d-0" class="day-check" value="0"><label for="d-0" class="day-label">Dom</label>
+        <div id="hours-config">
+            <div class="config-row">
+                <span>Orario (Inizio - Fine):</span>
+                <div>
+                    <input type="time" id="t-start"> - <input type="time" id="t-end">
+                </div>
+            </div>
+            <div class="config-row">
+                <span>Capienza Max:</span>
+                <input type="number" id="t-cap">
             </div>
         </div>
+        <button class="btn-save" onclick="saveConfig()">SALVA MODIFICHE</button>
+    </div>
 
-        <div class="form-group">
-            <label>Generatore Orari (es. 19:00 - 23:00 ogni 30 min):</label>
-            <div class="form-row">
-                <input type="time" id="time-start" value="19:00">
-                <input type="time" id="time-end" value="23:00">
-                <input type="number" id="time-interval" value="30" placeholder="Minuti">
-            </div>
-        </div>
-
-        <button class="btn-save" onclick="saveSettings()">SALVA CONFIGURAZIONE</button>
+    <div class="card">
+        <h3 style="margin-top:0;">Prenotazioni (<span id="count">0</span>/ <span id="max-cap">0</span>)</h3>
+        <div id="res-list"></div>
     </div>
 </div>
 
 <script>
-    // --- INCOLLA QUI LA TUA CONFIGURAZIONE FIREBASE ---
+    // --- FIREBASE CONFIG (INCOLLA QUI) ---
     const firebaseConfig = {
     apiKey: "AIzaSyCs-6L3xP7_jhhatlAsS_U02Ye-92_AEXk",
     authDomain: "reservationsystem-64c22.firebaseapp.com",
@@ -136,194 +111,100 @@
     messagingSenderId: "663648362391",
     appId: "1:663648362391:web:6fbfb130761478eceeeed2"
   };
-    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
     const auth = firebase.auth();
 
-    let currentConfig = { capacity: 50, closedDays: [], slots: [] };
+    let dayData = { isOpen: true, start: "19:00", end: "23:00", capacity: 50 };
 
-    auth.onAuthStateChanged(user => {
-        if(user) {
+    auth.onAuthStateChanged(u => {
+        if(u) {
             document.getElementById('login-overlay').style.display = 'none';
             document.getElementById('admin-content').style.display = 'block';
-            initAdmin();
-        } else {
-            document.getElementById('login-overlay').style.display = 'flex';
+            document.getElementById('admin-date').valueAsDate = new Date();
+            loadDay();
         }
     });
 
     function login() {
-        const e = document.getElementById('email').value;
-        const p = document.getElementById('password').value;
-        auth.signInWithEmailAndPassword(e, p).catch(err => alert("Errore: " + err.message));
-    }
-    function logout() { auth.signOut().then(() => location.reload()); }
-
-    function initAdmin() {
-        document.getElementById('admin-date').valueAsDate = new Date();
-        
-        // Carica impostazioni (con controllo "infinito caricamento")
-        db.ref('settings').once('value').then(snap => {
-            const val = snap.val();
-            if(val) {
-                currentConfig = val;
-                document.getElementById('set-capacity').value = val.capacity || 50;
-                // Popola checkbox giorni
-                if(val.closedDays) {
-                    val.closedDays.forEach(d => {
-                        const el = document.getElementById('d-'+d);
-                        if(el) el.checked = true;
-                    });
-                }
-                // Popola orari (visual only)
-                if(val.start) document.getElementById('time-start').value = val.start;
-                if(val.end) document.getElementById('time-end').value = val.end;
-                if(val.interval) document.getElementById('time-interval').value = val.interval;
-            }
-            loadReservations();
-        });
+        auth.signInWithEmailAndPassword(document.getElementById('email').value, document.getElementById('password').value)
+        .catch(e => alert(e.message));
     }
 
-    function changeDate(delta) {
-        const input = document.getElementById('admin-date');
-        const d = new Date(input.value);
-        d.setDate(d.getDate() + delta);
-        input.value = d.toISOString().split('T')[0];
-        loadReservations();
+    function changeDate(d) {
+        const inp = document.getElementById('admin-date');
+        const dt = new Date(inp.value);
+        dt.setDate(dt.getDate() + d);
+        inp.value = dt.toISOString().split('T')[0];
+        loadDay();
     }
 
-    function loadReservations() {
+    function loadDay() {
         const date = document.getElementById('admin-date').value;
-        const list = document.getElementById('reservations-list');
-        list.innerHTML = "<div style='text-align:center; padding:20px;'>Caricamento...</div>";
-
-        db.ref('prenotazioni').orderByChild('date').equalTo(date).once('value', snap => {
-            const data = snap.val() || {};
-            renderList(data);
+        
+        // Load Config
+        db.ref('calendar/'+date).once('value', snap => {
+            dayData = snap.val() || { isOpen: true, start: "19:00", end: "23:00", capacity: 50 };
+            renderConfig();
         });
+
+        // Load Bookings
+        db.ref('prenotazioni').orderByChild('date').equalTo(date).on('value', snap => {
+            renderList(snap.val() || {});
+        });
+    }
+
+    function renderConfig() {
+        document.getElementById('btn-open').className = `switch-btn ${dayData.isOpen ? 'active' : ''}`;
+        document.getElementById('btn-closed').className = `switch-btn ${!dayData.isOpen ? 'active' : ''}`;
+        document.getElementById('hours-config').style.opacity = dayData.isOpen ? '1' : '0.3';
+        
+        document.getElementById('t-start').value = dayData.start;
+        document.getElementById('t-end').value = dayData.end;
+        document.getElementById('t-cap').value = dayData.capacity;
+    }
+
+    function setStatus(s) { dayData.isOpen = s; renderConfig(); }
+
+    function saveConfig() {
+        const date = document.getElementById('admin-date').value;
+        const data = {
+            isOpen: dayData.isOpen,
+            start: document.getElementById('t-start').value,
+            end: document.getElementById('t-end').value,
+            capacity: parseInt(document.getElementById('t-cap').value)
+        };
+        db.ref('calendar/'+date).set(data).then(() => alert("Salvato!"));
     }
 
     function renderList(data) {
-        const list = document.getElementById('reservations-list');
+        const list = document.getElementById('res-list');
         list.innerHTML = "";
+        let count = 0;
+        let books = Object.entries(data).map(([k,v]) => ({...v, key: k}));
         
-        // Usa gli slot salvati o un default
-        const slots = currentConfig.slots && currentConfig.slots.length > 0 
-            ? currentConfig.slots 
-            : ["19:00", "20:00", "21:00", "22:00"]; 
+        books.sort((a,b) => a.time.localeCompare(b.time));
 
-        const grouped = {};
-        slots.forEach(t => grouped[t] = []);
-        
-        let totalGuests = 0;
-        let others = []; // Prenotazioni fuori orario (es. vecchi orari)
-
-        Object.entries(data).forEach(([key, val]) => {
-            val.key = key;
-            totalGuests += parseInt(val.guests);
-            if(grouped[val.time]) {
-                grouped[val.time].push(val);
-            } else {
-                others.push(val);
-            }
-        });
-
-        document.getElementById('stats-bar').innerText = `Totale Coperti: ${totalGuests} / ${currentConfig.capacity}`;
-
-        slots.forEach(time => {
-            const bookings = grouped[time];
-            let occupied = 0;
-            bookings.forEach(b => occupied += parseInt(b.guests));
-            
-            const percentage = Math.min(100, (occupied / currentConfig.capacity) * 100);
-            const colorBar = percentage > 90 ? '#e74c3c' : '#27ae60';
-
-            let html = `
-                <div class="slot-group">
-                    <div class="slot-header">
-                        <span>⏰ ${time}</span>
-                        <span style="font-weight:normal; font-size:0.9em;">${occupied} pax</span>
+        books.forEach(b => {
+            count += parseInt(b.guests);
+            list.innerHTML += `
+                <div class="res-item">
+                    <div class="res-time">${b.time}</div>
+                    <div class="res-info">
+                        <strong>${b.name}</strong> <span class="res-guests">${b.guests}p</span><br>
+                        <small style="color:#666;">${b.phone}</small>
+                        ${b.notes ? `<br><small style="background:#fff3cd;">${b.notes}</small>` : ''}
                     </div>
-                    <div style="height:4px; background:#ddd; margin:5px 0; border-radius:2px; overflow:hidden;">
-                        <div style="width:${percentage}%; background:${colorBar}; height:100%;"></div>
-                    </div>
+                    <button class="btn-del" onclick="del('${b.key}')">×</button>
+                </div>
             `;
-
-            if(bookings.length === 0) html += `<div style="color:#999; font-size:0.85em; font-style:italic;">Libero</div>`;
-            
-            bookings.forEach(b => {
-                const noteHtml = b.notes ? `<div style="font-size:0.85em; color:#d63031; margin-top:2px;">📝 ${b.notes}</div>` : '';
-                html += `
-                    <div class="res-card">
-                        <div class="res-info">
-                            <div class="res-name">${b.name} <span class="res-badge">x${b.guests}</span></div>
-                            <div style="font-size:0.85em; color:#666;">📞 ${b.phone}</div>
-                            ${noteHtml}
-                        </div>
-                        <div class="res-actions">
-                            <button onclick="deleteRes('${b.key}')">✖</button>
-                        </div>
-                    </div>`;
-            });
-            html += `</div>`;
-            list.innerHTML += html;
         });
-
-        // Mostra eventuali errori di orario
-        if(others.length > 0) {
-            list.innerHTML += `<h4 style="color:red; margin-top:20px;">⚠️ Fuori Orario (Errori)</h4>`;
-            others.forEach(b => {
-                list.innerHTML += `<div class="res-card" style="border-color:red;"><div class="res-info"><strong>${b.time}</strong> - ${b.name} x${b.guests}</div><div class="res-actions"><button onclick="deleteRes('${b.key}')">✖</button></div></div>`;
-            });
-        }
+        document.getElementById('count').innerText = count;
+        document.getElementById('max-cap').innerText = dayData.capacity || 50;
     }
 
-    function deleteRes(key) {
-        if(confirm("Eliminare questa prenotazione?")) {
-            db.ref('prenotazioni/' + key).remove().then(() => loadReservations());
-        }
-    }
-
-    function generateSlots(start, end, interval) {
-        const slots = [];
-        let current = new Date(`2000-01-01T${start}`);
-        const endTime = new Date(`2000-01-01T${end}`);
-        
-        while (current <= endTime) {
-            let h = current.getHours().toString().padStart(2, '0');
-            let m = current.getMinutes().toString().padStart(2, '0');
-            slots.push(`${h}:${m}`);
-            current.setMinutes(current.getMinutes() + parseInt(interval));
-        }
-        return slots;
-    }
-
-    function saveSettings() {
-        const capacity = parseInt(document.getElementById('set-capacity').value);
-        
-        // Recupera giorni chiusi
-        const closedDays = [];
-        document.querySelectorAll('.day-check:checked').forEach(el => {
-            closedDays.push(parseInt(el.value));
-        });
-
-        // Genera orari
-        const sTime = document.getElementById('time-start').value;
-        const eTime = document.getElementById('time-end').value;
-        const intv = document.getElementById('time-interval').value;
-        const slots = generateSlots(sTime, eTime, intv);
-
-        if(slots.length === 0) return alert("Orari non validi!");
-
-        db.ref('settings').update({
-            capacity: capacity,
-            closedDays: closedDays,
-            slots: slots,
-            start: sTime, end: eTime, interval: intv // Salva anche i valori input per ripopolarli
-        }).then(() => {
-            alert(`✅ Salvato!\nCapienza: ${capacity}\nGiorni Chiusi: ${closedDays.length}\nOrari Generati: ${slots.join(', ')}`);
-            location.reload();
-        });
+    function del(k) {
+        if(confirm("Eliminare?")) db.ref('prenotazioni/'+k).remove();
     }
 </script>
 </body>
