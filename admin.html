@@ -4,104 +4,165 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin - Angolo Divino</title>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
     <style>
-        :root { --bg: #f4f4f4; --card: #fff; --text: #111; --accent: #000; }
-        body { font-family: 'DM Sans', sans-serif; background: var(--bg); margin: 0; padding: 20px; color: var(--text); }
-        .container { max-width: 800px; margin: 0 auto; padding-bottom: 50px; }
+        :root { --bg: #f8f9fa; --surface: #ffffff; --text: #1f2937; --accent: #000; --border: #e5e7eb; --green: #10b981; --red: #ef4444; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
+        
+        .container { max-width: 800px; margin: 0 auto; }
 
+        /* HEADER */
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .title-group h1 { margin: 0; font-size: 1.5rem; letter-spacing: -0.5px; }
+        .title-group span { color: #6b7280; font-size: 0.9rem; }
         
-        .card { background: var(--card); padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 20px; border: 1px solid #eee; }
+        .btn-icon { background: white; border: 1px solid var(--border); width: 40px; height: 40px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; transition: 0.2s; }
+        .btn-icon:hover { background: #f3f4f6; }
+
+        /* DATE NAVIGATOR (HOME) */
+        .date-bar { display: flex; align-items: center; gap: 10px; background: var(--surface); padding: 10px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 20px; }
+        .date-bar input { border: none; font-size: 1rem; font-weight: 600; flex: 1; outline: none; font-family: inherit; cursor: pointer; }
         
-        /* DATE NAV */
-        .date-nav { display: flex; gap: 10px; margin-bottom: 20px; }
-        input[type="date"] { padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 1.1em; flex: 1; font-family: inherit; }
-        button { cursor: pointer; font-family: inherit; }
+        /* LISTA PRENOTAZIONI */
+        .res-list { display: flex; flex-direction: column; gap: 10px; }
+        .res-card { background: var(--surface); padding: 15px; border-radius: 12px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .res-time { font-weight: 700; font-size: 1.1rem; color: var(--accent); width: 60px; }
+        .res-info div:first-child { font-weight: 600; }
+        .res-info div:last-child { font-size: 0.85rem; color: #6b7280; }
+        .badge { background: #f3f4f6; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; margin-left: 5px; }
+        .btn-del { color: #d1d5db; background: none; border: none; font-size: 1.5rem; cursor: pointer; }
+        .btn-del:hover { color: var(--red); }
 
-        /* DAY CONFIG */
-        .config-row { display: flex; gap: 15px; align-items: center; justify-content: space-between; margin-bottom: 15px; }
-        .switch-btn { padding: 8px 16px; border-radius: 20px; border: 1px solid #ccc; background: #eee; font-weight: 500; }
-        .switch-btn.active { background: #000; color: #fff; border-color: #000; }
+        /* --- MODAL CALENDARIO (SETTINGS) --- */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 100; display: none; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
+        .modal-box { background: var(--surface); width: 90%; max-width: 400px; border-radius: 16px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); position: relative; max-height: 90vh; overflow-y: auto; }
         
-        input[type="time"], input[type="number"] { padding: 8px; border: 1px solid #ddd; border-radius: 6px; text-align: center; font-weight: bold; width: 100px; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+        .close-modal { background: none; border: none; font-size: 1.5rem; cursor: pointer; }
 
-        /* LIST */
-        .res-item { 
-            padding: 15px; border-bottom: 1px solid #eee; display: flex; align-items: center; justify-content: space-between;
-        }
-        .res-time { font-weight: 700; width: 60px; }
-        .res-info { flex: 1; }
-        .res-guests { background: #eee; padding: 2px 6px; border-radius: 4px; font-size: 0.85em; font-weight: bold; margin-left: 5px; }
-        .btn-del { color: red; border: none; background: none; font-size: 1.2em; cursor: pointer; }
+        /* CALENDARIO GRIGLIA */
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-top: 10px; }
+        .cal-day-name { text-align: center; font-size: 0.7rem; color: #6b7280; font-weight: bold; text-transform: uppercase; margin-bottom: 5px; }
+        .cal-day { aspect-ratio: 1; border-radius: 8px; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 0.9rem; font-weight: 500; position: relative; transition: 0.2s; }
+        .cal-day:hover { transform: scale(1.05); z-index: 2; border-color: var(--accent); }
+        
+        /* STATI CALENDARIO */
+        .d-open { background-color: #d1fae5; color: #065f46; border-color: #a7f3d0; } /* Verde */
+        .d-closed { background-color: #fee2e2; color: #991b1b; border-color: #fecaca; opacity: 0.6; } /* Rosso */
+        .d-selected { border: 2px solid black !important; }
 
-        .btn-save { width: 100%; background: #000; color: #fff; padding: 12px; border: none; border-radius: 8px; font-weight: bold; font-size: 1em; }
+        /* EDITOR GIORNO */
+        .day-editor { background: #f9fafb; padding: 15px; border-radius: 8px; margin-top: 20px; border: 1px solid var(--border); }
+        .editor-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        
+        .switch { display: flex; background: #e5e7eb; border-radius: 20px; pading: 2px; }
+        .switch-opt { padding: 6px 12px; border-radius: 18px; cursor: pointer; font-size: 0.8rem; font-weight: 600; user-select: none; }
+        .switch-opt.active[data-val="true"] { background: var(--green); color: white; }
+        .switch-opt.active[data-val="false"] { background: var(--red); color: white; }
+
+        .time-inputs input { width: 80px; padding: 8px; border: 1px solid var(--border); border-radius: 6px; text-align: center; font-weight: bold; }
+        .btn-save-day { width: 100%; background: var(--accent); color: white; padding: 12px; border-radius: 8px; border: none; font-weight: 600; cursor: pointer; margin-top: 10px; }
+
+        /* LOADING */
+        #loading-bar { position: fixed; top: 0; left: 0; width: 100%; height: 3px; background: linear-gradient(90deg, transparent, var(--accent), transparent); z-index: 9999; display: none; }
+        .loading #loading-bar { display: block; animation: load 1s infinite; }
+        @keyframes load { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
 
         /* LOGIN */
-        #login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #fff; z-index: 99; display: flex; align-items: center; justify-content: center; }
-        .login-box { width: 300px; text-align: center; }
-        .login-box input { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 8px; }
+        #login-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 1000; display: flex; align-items: center; justify-content: center; }
+        .login-card { background: white; padding: 30px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); width: 300px; text-align: center; }
+        .login-card input { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid var(--border); border-radius: 8px; box-sizing: border-box; }
+        .btn-login { width: 100%; background: var(--accent); color: white; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
 
-<div id="login-overlay">
-    <div class="login-box">
+<div id="loading-bar"></div>
+
+<div id="login-screen">
+    <div class="login-card">
         <h2>Admin</h2>
         <input type="email" id="email" placeholder="Email">
         <input type="password" id="password" placeholder="Password">
-        <button onclick="login()" class="btn-save">ENTRA</button>
+        <button class="btn-login" onclick="login()">ENTRA</button>
     </div>
 </div>
 
-<div class="container" id="admin-content" style="display:none;">
+<div class="container" id="app" style="display:none;">
+    
     <div class="header">
-        <h2>Gestione Giorno</h2>
-        <button onclick="auth.signOut().then(()=>location.reload())" style="background:none; border:none; text-decoration:underline;">Esci</button>
-    </div>
-
-    <div class="date-nav">
-        <button onclick="changeDate(-1)">◀</button>
-        <input type="date" id="admin-date" onchange="loadDay()">
-        <button onclick="changeDate(1)">▶</button>
-    </div>
-
-    <div class="card">
-        <div class="config-row">
-            <span>Stato:</span>
-            <div>
-                <button id="btn-open" class="switch-btn" onclick="setStatus(true)">APERTO</button>
-                <button id="btn-closed" class="switch-btn" onclick="setStatus(false)">CHIUSO</button>
-            </div>
+        <div class="title-group">
+            <h1>Prenotazioni</h1>
+            <span id="today-stats">Caricamento...</span>
         </div>
-        
-        <div id="hours-config">
-            <div class="config-row">
-                <span>Orario (Inizio - Fine):</span>
-                <div>
-                    <input type="time" id="t-start"> - <input type="time" id="t-end">
+        <div style="display:flex; gap:10px;">
+            <button class="btn-icon" onclick="openCalendar()" title="Impostazioni Calendario">⚙️</button>
+            <button class="btn-icon" onclick="logout()" title="Esci">🚪</button>
+        </div>
+    </div>
+
+    <div class="date-bar">
+        <button class="btn-icon" onclick="navDate(-1)">◀</button>
+        <input type="date" id="current-date" onchange="loadBookings()">
+        <button class="btn-icon" onclick="navDate(1)">▶</button>
+    </div>
+
+    <div id="booking-list" class="res-list">
+        </div>
+</div>
+
+<div id="calendar-modal" class="modal-overlay">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h3>⚙️ Gestione Orari</h3>
+            <button class="close-modal" onclick="closeCalendar()">×</button>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <button class="btn-icon" style="width:30px; height:30px;" onclick="navMonth(-1)">◀</button>
+            <strong id="cal-month-label">Agosto 2024</strong>
+            <button class="btn-icon" style="width:30px; height:30px;" onclick="navMonth(1)">▶</button>
+        </div>
+
+        <div class="calendar-grid" id="cal-grid">
+            </div>
+
+        <div id="day-editor" class="day-editor" style="display:none;">
+            <div style="text-align:center; font-weight:bold; margin-bottom:10px;" id="editor-date-label">15 Agosto</div>
+            
+            <div class="editor-row">
+                <span>Stato locale:</span>
+                <div class="switch">
+                    <div class="switch-opt" id="sw-open" onclick="setEditorStatus(true)">APERTO</div>
+                    <div class="switch-opt" id="sw-closed" onclick="setEditorStatus(false)">CHIUSO</div>
                 </div>
             </div>
-            <div class="config-row">
-                <span>Capienza Max:</span>
-                <input type="number" id="t-cap">
-            </div>
-        </div>
-        <button class="btn-save" onclick="saveConfig()">SALVA MODIFICHE</button>
-    </div>
 
-    <div class="card">
-        <h3 style="margin-top:0;">Prenotazioni (<span id="count">0</span>/ <span id="max-cap">0</span>)</h3>
-        <div id="res-list"></div>
+            <div class="editor-row" id="editor-hours">
+                <span>Orario:</span>
+                <div class="time-inputs">
+                    <input type="time" id="edit-start"> - <input type="time" id="edit-end">
+                </div>
+            </div>
+
+            <div class="editor-row" id="editor-cap">
+                <span>Capienza:</span>
+                <div class="time-inputs">
+                    <input type="number" id="edit-cap" style="width:60px;">
+                </div>
+            </div>
+
+            <button class="btn-save-day" onclick="saveDayConfig()">SALVA MODIFICHE</button>
+        </div>
     </div>
 </div>
 
 <script>
-    // --- FIREBASE CONFIG (INCOLLA QUI) ---
+    // --- FIREBASE CONFIG (INCOLLA QUI LE TUE CHIAVI) ---
     const firebaseConfig = {
     apiKey: "AIzaSyCs-6L3xP7_jhhatlAsS_U02Ye-92_AEXk",
     authDomain: "reservationsystem-64c22.firebaseapp.com",
@@ -115,96 +176,197 @@
     const db = firebase.database();
     const auth = firebase.auth();
 
-    let dayData = { isOpen: true, start: "19:00", end: "23:00", capacity: 50 };
+    // VARIABILI GLOBALI
+    let currentDate = new Date().toISOString().split('T')[0];
+    let calViewDate = new Date(); // Mese visualizzato nel calendario
+    let selectedCalDate = null; // Giorno cliccato nel calendario
+    let monthData = {}; // Cache dati mese
 
-    auth.onAuthStateChanged(u => {
-        if(u) {
-            document.getElementById('login-overlay').style.display = 'none';
-            document.getElementById('admin-content').style.display = 'block';
-            document.getElementById('admin-date').valueAsDate = new Date();
-            loadDay();
+    // --- AUTH ---
+    auth.onAuthStateChanged(user => {
+        if(user) {
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('app').style.display = 'block';
+            document.getElementById('current-date').value = currentDate;
+            loadBookings();
+        } else {
+            document.getElementById('login-screen').style.display = 'flex';
         }
     });
 
     function login() {
-        auth.signInWithEmailAndPassword(document.getElementById('email').value, document.getElementById('password').value)
-        .catch(e => alert(e.message));
+        const e = document.getElementById('email').value;
+        const p = document.getElementById('password').value;
+        auth.signInWithEmailAndPassword(e, p).catch(err => alert("Errore: " + err.message));
+    }
+    function logout() { auth.signOut().then(() => location.reload()); }
+
+    // --- GESTIONE HOME (PRENOTAZIONI) ---
+    function navDate(delta) {
+        const d = new Date(document.getElementById('current-date').value);
+        d.setDate(d.getDate() + delta);
+        const newDate = d.toISOString().split('T')[0];
+        document.getElementById('current-date').value = newDate;
+        loadBookings();
     }
 
-    function changeDate(d) {
-        const inp = document.getElementById('admin-date');
-        const dt = new Date(inp.value);
-        dt.setDate(dt.getDate() + d);
-        inp.value = dt.toISOString().split('T')[0];
-        loadDay();
-    }
-
-    function loadDay() {
-        const date = document.getElementById('admin-date').value;
-        
-        // Load Config
-        db.ref('calendar/'+date).once('value', snap => {
-            dayData = snap.val() || { isOpen: true, start: "19:00", end: "23:00", capacity: 50 };
-            renderConfig();
-        });
-
-        // Load Bookings
-        db.ref('prenotazioni').orderByChild('date').equalTo(date).on('value', snap => {
-            renderList(snap.val() || {});
-        });
-    }
-
-    function renderConfig() {
-        document.getElementById('btn-open').className = `switch-btn ${dayData.isOpen ? 'active' : ''}`;
-        document.getElementById('btn-closed').className = `switch-btn ${!dayData.isOpen ? 'active' : ''}`;
-        document.getElementById('hours-config').style.opacity = dayData.isOpen ? '1' : '0.3';
-        
-        document.getElementById('t-start').value = dayData.start;
-        document.getElementById('t-end').value = dayData.end;
-        document.getElementById('t-cap').value = dayData.capacity;
-    }
-
-    function setStatus(s) { dayData.isOpen = s; renderConfig(); }
-
-    function saveConfig() {
-        const date = document.getElementById('admin-date').value;
-        const data = {
-            isOpen: dayData.isOpen,
-            start: document.getElementById('t-start').value,
-            end: document.getElementById('t-end').value,
-            capacity: parseInt(document.getElementById('t-cap').value)
-        };
-        db.ref('calendar/'+date).set(data).then(() => alert("Salvato!"));
-    }
-
-    function renderList(data) {
-        const list = document.getElementById('res-list');
+    function loadBookings() {
+        showLoader(true);
+        const date = document.getElementById('current-date').value;
+        const list = document.getElementById('booking-list');
         list.innerHTML = "";
-        let count = 0;
-        let books = Object.entries(data).map(([k,v]) => ({...v, key: k}));
-        
-        books.sort((a,b) => a.time.localeCompare(b.time));
 
-        books.forEach(b => {
-            count += parseInt(b.guests);
-            list.innerHTML += `
-                <div class="res-item">
-                    <div class="res-time">${b.time}</div>
-                    <div class="res-info">
-                        <strong>${b.name}</strong> <span class="res-guests">${b.guests}p</span><br>
-                        <small style="color:#666;">${b.phone}</small>
-                        ${b.notes ? `<br><small style="background:#fff3cd;">${b.notes}</small>` : ''}
-                    </div>
-                    <button class="btn-del" onclick="del('${b.key}')">×</button>
-                </div>
-            `;
+        // Timeout di sicurezza anti-caricamento infinito
+        const safetyTimeout = setTimeout(() => { showLoader(false); }, 2000);
+
+        db.ref('prenotazioni').orderByChild('date').equalTo(date).once('value', snap => {
+            clearTimeout(safetyTimeout);
+            showLoader(false);
+            
+            const data = snap.val();
+            if(!data) {
+                list.innerHTML = "<div style='text-align:center; color:#9ca3af; padding:30px;'>Nessuna prenotazione</div>";
+                document.getElementById('today-stats').innerText = "0 Coperti";
+                return;
+            }
+
+            let total = 0;
+            const arr = Object.entries(data).map(([k,v]) => ({...v, key: k}));
+            arr.sort((a,b) => a.time.localeCompare(b.time));
+
+            arr.forEach(b => {
+                total += parseInt(b.guests);
+                list.innerHTML += `
+                    <div class="res-card">
+                        <div class="res-time">${b.time}</div>
+                        <div class="res-info">
+                            <div>${b.name} <span class="badge">${b.guests}p</span></div>
+                            <div>${b.phone} ${b.notes ? ' • 📝 ' + b.notes : ''}</div>
+                        </div>
+                        <button class="btn-del" onclick="deleteRes('${b.key}')">&times;</button>
+                    </div>`;
+            });
+            document.getElementById('today-stats').innerText = `${total} Coperti totali`;
         });
-        document.getElementById('count').innerText = count;
-        document.getElementById('max-cap').innerText = dayData.capacity || 50;
     }
 
-    function del(k) {
-        if(confirm("Eliminare?")) db.ref('prenotazioni/'+k).remove();
+    function deleteRes(key) {
+        if(confirm("Eliminare?")) {
+            db.ref('prenotazioni/' + key).remove().then(() => loadBookings());
+        }
+    }
+
+    // --- GESTIONE CALENDARIO (SETTINGS) ---
+    function openCalendar() {
+        document.getElementById('calendar-modal').style.display = 'flex';
+        renderCalendar();
+    }
+    function closeCalendar() {
+        document.getElementById('calendar-modal').style.display = 'none';
+        loadBookings(); // Ricarica la lista nel caso abbiamo cambiato la data corrente
+    }
+
+    function navMonth(delta) {
+        calViewDate.setMonth(calViewDate.getMonth() + delta);
+        renderCalendar();
+    }
+
+    function renderCalendar() {
+        const grid = document.getElementById('cal-grid');
+        grid.innerHTML = "";
+        
+        // Intestazioni
+        const days = ['Lun','Mar','Mer','Gio','Ven','Sab','Dom'];
+        days.forEach(d => grid.innerHTML += `<div class="cal-day-name">${d}</div>`);
+
+        const year = calViewDate.getFullYear();
+        const month = calViewDate.getMonth();
+        
+        document.getElementById('cal-month-label').innerText = calViewDate.toLocaleString('it-IT', { month: 'long', year: 'numeric' }).toUpperCase();
+
+        // Primo giorno del mese
+        const firstDay = new Date(year, month, 1).getDay(); 
+        const adjustedFirstDay = firstDay === 0 ? 6 : firstDay - 1; // Lunedì = 0
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+        // Scarica configurazioni del mese corrente
+        const startStr = new Date(year, month, 1).toISOString().split('T')[0];
+        const endStr = new Date(year, month, daysInMonth).toISOString().split('T')[0];
+
+        db.ref('calendar').orderByKey().startAt(startStr).endAt(endStr).once('value', snap => {
+            monthData = snap.val() || {};
+            
+            // Celle vuote prima del primo giorno
+            for(let i=0; i<adjustedFirstDay; i++) {
+                grid.innerHTML += `<div></div>`;
+            }
+
+            // Celle giorni
+            for(let d=1; d<=daysInMonth; d++) {
+                const dateKey = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                const config = monthData[dateKey] || { isOpen: true }; // Default Aperto se null
+                
+                const el = document.createElement('div');
+                el.className = `cal-day ${config.isOpen ? 'd-open' : 'd-closed'}`;
+                el.innerText = d;
+                el.onclick = () => openDayEditor(dateKey, config);
+                
+                grid.appendChild(el);
+            }
+        });
+    }
+
+    // --- EDITOR SINGOLO GIORNO ---
+    function openDayEditor(date, config) {
+        selectedCalDate = date;
+        document.getElementById('day-editor').style.display = 'block';
+        document.getElementById('editor-date-label').innerText = "Modifica: " + date;
+        
+        // Imposta UI
+        setEditorStatus(config.isOpen);
+        document.getElementById('edit-start').value = config.start || "19:00";
+        document.getElementById('edit-end').value = config.end || "23:00";
+        document.getElementById('edit-cap').value = config.capacity || 50;
+    }
+
+    function setEditorStatus(isOpen) {
+        const swOpen = document.getElementById('sw-open');
+        const swClosed = document.getElementById('sw-closed');
+        const hoursBox = document.getElementById('editor-hours');
+        const capBox = document.getElementById('editor-cap');
+
+        if(isOpen) {
+            swOpen.classList.add('active'); swOpen.dataset.val = "true";
+            swClosed.classList.remove('active');
+            hoursBox.style.opacity = '1'; hoursBox.style.pointerEvents = 'auto';
+            capBox.style.opacity = '1';
+        } else {
+            swClosed.classList.add('active'); swClosed.dataset.val = "false";
+            swOpen.classList.remove('active');
+            hoursBox.style.opacity = '0.3'; hoursBox.style.pointerEvents = 'none';
+            capBox.style.opacity = '0.3';
+        }
+    }
+
+    function saveDayConfig() {
+        if(!selectedCalDate) return;
+        
+        const isOpen = document.getElementById('sw-open').classList.contains('active');
+        const data = {
+            isOpen: isOpen,
+            start: document.getElementById('edit-start').value,
+            end: document.getElementById('edit-end').value,
+            capacity: parseInt(document.getElementById('edit-cap').value)
+        };
+
+        db.ref('calendar/' + selectedCalDate).set(data).then(() => {
+            renderCalendar(); // Aggiorna colori griglia
+            document.getElementById('day-editor').style.display = 'none'; // Chiudi editor
+        });
+    }
+
+    function showLoader(show) {
+        document.body.className = show ? 'loading' : '';
     }
 </script>
 </body>
