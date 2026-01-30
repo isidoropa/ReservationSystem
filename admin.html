@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Prenotazioni</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+    <style>
+        :root { --bg: #f4f6f8; --card: #fff; --text: #2d3436; --accent: #d4af37; }
+        body { font-family: 'Poppins', sans-serif; background: var(--bg); margin: 0; padding: 20px; color: var(--text); }
+        .container { max-width: 900px; margin: 0 auto; }
+
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        h1 { margin: 0; font-size: 1.5em; }
+
+        .dashboard-card { background: var(--card); padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        
+        .date-nav { display: flex; gap: 10px; margin-bottom: 20px; }
+        input[type="date"] { padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 1em; flex: 1; }
+        
+        /* TABELLA ORARI */
+        .slot-group { margin-bottom: 20px; border-left: 4px solid var(--accent); padding-left: 15px; }
+        .slot-header { font-weight: bold; font-size: 1.2em; color: var(--accent); display: flex; justify-content: space-between; }
+        .slot-stats { font-size: 0.8em; color: #777; font-weight: normal; }
+
+        .res-card { 
+            background: white; border: 1px solid #eee; padding: 12px; margin-top: 8px; 
+            border-radius: 8px; display: flex; justify-content: space-between; align-items: center;
+        }
+        .res-info { flex: 1; }
+        .res-name { font-weight: 600; }
+        .res-details { font-size: 0.9em; color: #555; }
+        .res-actions button { background: #fee; color: #c0392b; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; }
+
+        /* SETTINGS */
+        .settings-box { background: #2d3436; color: white; padding: 20px; border-radius: 12px; margin-top: 30px; }
+        .settings-box input { padding: 8px; border-radius: 4px; border: none; width: 80px; text-align: center; }
+        .btn-save { background: var(--accent); border: none; padding: 8px 15px; border-radius: 4px; color: #000; font-weight: bold; cursor: pointer; margin-left: 10px; }
+
+        #login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #2d3436; display: flex; justify-content: center; align-items: center; z-index: 999; }
+        .login-box { background: white; padding: 30px; border-radius: 10px; text-align: center; }
+        .login-box input { display: block; width: 100%; margin: 10px 0; padding: 10px; }
+    </style>
+</head>
+<body>
+
+<div id="login-overlay">
+    <div class="login-box">
+        <h2>Admin Login</h2>
+        <input type="email" id="email" placeholder="Email">
+        <input type="password" id="password" placeholder="Password">
+        <button onclick="login()" style="padding:10px 20px; background:#d4af37; border:none; font-weight:bold; cursor:pointer;">ENTRA</button>
+    </div>
+</div>
+
+<div class="container" id="admin-content" style="display:none;">
+    <div class="header">
+        <h1>📅 Agenda Prenotazioni</h1>
+        <button onclick="logout()">Esci</button>
+    </div>
+
+    <div class="dashboard-card">
+        <div class="date-nav">
+            <button onclick="changeDate(-1)">◀</button>
+            <input type="date" id="admin-date" onchange="loadReservations()">
+            <button onclick="changeDate(1)">▶</button>
+        </div>
+        <div id="stats-bar" style="text-align:center; font-weight:bold; margin-bottom:15px; color:#555;">
+            Caricamento...
+        </div>
+        <div id="reservations-list"></div>
+    </div>
+
+    <div class="settings-box">
+        <h3>⚙️ Impostazioni Locale</h3>
+        <label>Capienza Massima (Coperti totali):</label>
+        <input type="number" id="set-capacity" value="50">
+        <button class="btn-save" onclick="saveSettings()">SALVA</button>
+        <p style="font-size:0.8em; opacity:0.7; margin-top:5px;">Modificare la capienza non influisce sulle prenotazioni già prese, ma bloccherà le nuove.</p>
+    </div>
+</div>
+
+<script>
+    const firebaseConfig = {
+    apiKey: "AIzaSyCs-6L3xP7_jhhatlAsS_U02Ye-92_AEXk",
+    authDomain: "reservationsystem-64c22.firebaseapp.com",
+    databaseURL: "https://reservationsystem-64c22-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "reservationsystem-64c22",
+    storageBucket: "reservationsystem-64c22.firebasestorage.app",
+    messagingSenderId: "663648362391",
+    appId: "1:663648362391:web:6fbfb130761478eceeeed2"
+  };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const auth = firebase.auth();
+
+    let currentCapacity = 50;
+
+    // LOGIN LOGIC
+    auth.onAuthStateChanged(user => {
+        if(user) {
+            document.getElementById('login-overlay').style.display = 'none';
+            document.getElementById('admin-content').style.display = 'block';
+            initAdmin();
+        } else {
+            document.getElementById('login-overlay').style.display = 'flex';
+        }
+    });
+    function login() {
+        auth.signInWithEmailAndPassword(document.getElementById('email').value, document.getElementById('password').value)
+        .catch(e => alert(e.message));
+    }
+    function logout() { auth.signOut().then(() => location.reload()); }
+
+    function initAdmin() {
+        // Set date to today
+        document.getElementById('admin-date').valueAsDate = new Date();
+        
+        // Load Settings
+        db.ref('settings').on('value', snap => {
+            const s = snap.val();
+            if(s && s.capacity) {
+                currentCapacity = s.capacity;
+                document.getElementById('set-capacity').value = currentCapacity;
+            }
+            loadReservations(); // Reload list to update capacity calc
+        });
+    }
+
+    function changeDate(delta) {
+        const input = document.getElementById('admin-date');
+        const d = new Date(input.value);
+        d.setDate(d.getDate() + delta);
+        input.value = d.toISOString().split('T')[0];
+        loadReservations();
+    }
+
+    function loadReservations() {
+        const date = document.getElementById('admin-date').value;
+        const list = document.getElementById('reservations-list');
+        list.innerHTML = "Caricamento...";
+
+        db.ref('prenotazioni').orderByChild('date').equalTo(date).once('value', snap => {
+            const data = snap.val() || {};
+            renderList(data);
+        });
+    }
+
+    function renderList(data) {
+        const list = document.getElementById('reservations-list');
+        list.innerHTML = "";
+        
+        // Raggruppa per orario
+        const grouped = {};
+        const slots = ["19:00", "19:30", "20:00", "20:30", "21:00", "21:30", "22:00"]; // Dovrebbe venire da config, hardcoded per semplicità
+        
+        slots.forEach(t => grouped[t] = []); // Init slot vuoti
+        let totalGuestsToday = 0;
+
+        Object.entries(data).forEach(([key, val]) => {
+            if(!grouped[val.time]) grouped[val.time] = [];
+            val.key = key; // Save firebase key
+            grouped[val.time].push(val);
+            totalGuestsToday += parseInt(val.guests);
+        });
+
+        document.getElementById('stats-bar').innerHTML = `Totale Coperti Oggi: ${totalGuestsToday}`;
+
+        slots.forEach(time => {
+            const bookings = grouped[time];
+            let occupied = 0;
+            bookings.forEach(b => occupied += parseInt(b.guests));
+            
+            const percentage = Math.min(100, (occupied / currentCapacity) * 100);
+            const colorBar = percentage > 90 ? '#c0392b' : '#27ae60';
+
+            let html = `
+                <div class="slot-group">
+                    <div class="slot-header">
+                        <span>⏰ ${time}</span>
+                        <span class="slot-stats">${occupied} / ${currentCapacity} coperti</span>
+                    </div>
+                    <div style="height:4px; background:#eee; margin:5px 0; border-radius:2px;">
+                        <div style="width:${percentage}%; background:${colorBar}; height:100%; border-radius:2px;"></div>
+                    </div>
+            `;
+
+            if(bookings.length === 0) {
+                html += `<div style="font-size:0.9em; color:#999; font-style:italic;">Nessuna prenotazione</div>`;
+            } else {
+                bookings.forEach(b => {
+                    const noteHtml = b.notes ? `<div style="font-size:0.85em; background:#fff3cd; padding:2px 5px; border-radius:4px; display:inline-block; margin-top:2px;">📝 ${b.notes}</div>` : '';
+                    html += `
+                        <div class="res-card">
+                            <div class="res-info">
+                                <div class="res-name">${b.name} <span style="background:#2d3436; color:white; padding:1px 6px; border-radius:10px; font-size:0.8em;">x${b.guests}</span></div>
+                                <div class="res-details">📞 <a href="tel:${b.phone}" style="color:#555;text-decoration:none;">${b.phone}</a></div>
+                                ${noteHtml}
+                            </div>
+                            <div class="res-actions">
+                                <button onclick="deleteRes('${b.key}')">🗑️</button>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            html += `</div>`;
+            list.innerHTML += html;
+        });
+    }
+
+    function deleteRes(key) {
+        if(confirm("Cancellare questa prenotazione? L'azione è irreversibile.")) {
+            db.ref('prenotazioni/' + key).remove().then(() => loadReservations());
+        }
+    }
+
+    function saveSettings() {
+        const cap = parseInt(document.getElementById('set-capacity').value);
+        db.ref('settings').update({
+            capacity: cap,
+            slots: ["19:00", "19:30", "20:00", "20:30", "21:00", "21:30", "22:00"] // Salva anche gli slot per coerenza
+        });
+        alert("Impostazioni salvate!");
+    }
+</script>
+</body>
+</html>
